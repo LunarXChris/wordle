@@ -1,0 +1,21 @@
+.keyboard{
+    margin: 20px;
+    justify-content: center;
+}
+
+.keyboard_row{
+    margin: 10px;
+    display: flex;
+    justify-content: center;
+}
+
+.key_cap{
+    height: 55px;
+    margin: 0 5px;
+    min-width: 55px;
+    background-color: #d3d6da;
+    font-family: sans-serif;
+    font-weight: bold;
+    justify-content: center;
+    align-items: center;
+}
