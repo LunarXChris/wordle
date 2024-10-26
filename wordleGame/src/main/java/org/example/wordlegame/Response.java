@@ -4,6 +4,7 @@ import org.example.wordlegame.Game.Game;
 
 public record Response(
     Game game,
-    Integer maxRound
+    Integer maxRound,
+    Integer playerId
 ) {
 }

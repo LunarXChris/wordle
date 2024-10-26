@@ -1,6 +1,7 @@
 package org.example.wordlegame.Game;
 
 import io.micrometer.common.util.StringUtils;
+import org.example.wordlegame.GuessResult;
 import org.example.wordlegame.Player;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,6 +109,7 @@ public class GameService {
     public Game connectToGame(Player player, String gameId) {
         Optional<Game> result = getGame(gameId);
         if(result.isEmpty()) {
+            log.warn("Game does found {}", result);
             return connectToRandomGame(player);
         }
 
@@ -231,10 +233,79 @@ public class GameService {
         List<Player> players = game.getPlayers();
         for(int i = 0; i < game.getPlayers().size(); i++) {
             if(players.get(i).playerName().equals(playerName)) {
-                answer = game.getWordCandidates().get(i);
+                answer = game.getWordCandidates().get(0);
             }
         }
 
         return answer;
+    }
+
+    public GuessResult handleMultiplayerRequest(String playerName, String gameId, String word, int playerId) {
+        Optional<Game> result = getGame(gameId);
+        result.orElseThrow(() -> new RuntimeException("Game not found"));
+
+        Game game = result.get();
+        List<Player> players = game.getPlayers();
+        List<String> words = game.getWordCandidates();
+
+        String answer = "GGGGG";
+
+        if(game.getGameMode() == GameModeEnum.MULTIPLAYER) {
+
+            int minHit = 5;
+            int minPresent = 5;
+            String remainWord = words.get(0);
+            List<String> update = new ArrayList<>();
+
+            for(int i = 0; i < words.size(); i++) {
+                String chosenWord = words.get(i);
+                String match = validateWord(word, chosenWord);
+                int hit = 0;
+                int present = 0;
+                for(int j = 0; j < 5; j++) {
+                    if(match.charAt(j) == 'B') {
+                        hit += 1;
+                    } else if(match.charAt(j) == 'Y') {
+                        present += 1;
+                    }
+                }
+
+                if(hit == 0 && present == 0) {
+                    update.add(chosenWord);
+                }
+                if(hit < minHit) {
+                    minHit = hit;
+                    minPresent = present;
+                    remainWord = chosenWord;
+                    answer = match;
+                } else if(hit == minHit && present < minPresent) {
+                    minPresent = present;
+                    remainWord = chosenWord;
+                    answer = match;
+                }
+            }
+
+            if(minHit > 0 || minPresent > 0) {
+                update.clear();
+                update.add(remainWord);
+            }
+
+            game.setWordCandidates(update);
+            gameRepository.save(game);
+        }
+
+        // to write: nextTurn logic
+        // iterate the List to prevent players have the same playerName
+        int currentPlayerTurn = 0;
+        for(int i = 0; i < players.size(); i++) {
+            if(players.get(i).playerName().equals(playerName) && i + 1 == playerId) {
+                currentPlayerTurn = i + 1;
+            }
+        }
+        int nextPlayerTurn = currentPlayerTurn == 1 ? 2 : 1;
+
+        GuessResult guessResult = new GuessResult(gameId, word, answer, nextPlayerTurn);
+
+        return guessResult;
     }
 }

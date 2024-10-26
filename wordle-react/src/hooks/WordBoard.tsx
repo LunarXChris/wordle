@@ -22,6 +22,13 @@ const WordBoard = forwardRef((props, ref) => {
             wordBoard.style.gridTemplateRows= "repeat(" + round + ", 1fr)"
 
         },
+        setWordInput: (value: string) => {
+            for(let i = 0; i < 5; i++) {
+                document.getElementById(row.toString() + "_" + i.toString()).innerHTML = value[i];
+                setCol(5);
+                setWord(value);
+            }
+        },
         setInputValue: (value: string) => {
             // handle ui changes according to user input 
             if(value.startsWith("enter")) {
