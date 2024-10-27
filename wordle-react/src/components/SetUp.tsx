@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+// provide the configuration of dictionary and maximum round of guess
 const setUp = () => {
 
     const navigate = useNavigate();
 
-
+    // navigate to the game webpage with configurations
     const handleSubmit = (event) => {
         event.preventDefault();
         const maxRound = document.getElementById("maxRound").value;

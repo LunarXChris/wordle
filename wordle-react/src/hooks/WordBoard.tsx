@@ -14,7 +14,7 @@ const WordBoard = forwardRef((props, ref) => {
         row,
         col,
         word,
-        setLayout: (round) => {
+        setLayout: (round) => { // setting up layout of wordboard according to the maximum round
             let height = round * 60;
             setMaxRound(round);
             const wordBoard = document.getElementById("board");
@@ -22,7 +22,7 @@ const WordBoard = forwardRef((props, ref) => {
             wordBoard.style.gridTemplateRows= "repeat(" + round + ", 1fr)"
 
         },
-        setWordInput: (value: string) => {
+        setWordInput: (value: string) => { // display the opponent's input in multiplayer mode 
             for(let i = 0; i < 5; i++) {
                 document.getElementById(row.toString() + "_" + i.toString()).innerHTML = value[i];
                 setCol(5);
@@ -53,14 +53,14 @@ const WordBoard = forwardRef((props, ref) => {
                     setWord("");
                 }
             } else if(value === "bs") {
-                // remove letter
+                // remove the last letter input by user
                 if(col > 0) {
                     document.getElementById(row.toString() + "_" + (col - 1).toString()).innerHTML = ""; 
                     setCol(col - 1);
                     setWord(word.slice(0, -1));
                 }
             } else {
-                //display letter
+                //display the letter input by user
                 if(col < 5) {
                     document.getElementById(row.toString() + "_" + col.toString()).innerHTML = value;
                     setCol(col + 1);

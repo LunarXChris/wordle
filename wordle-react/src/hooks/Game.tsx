@@ -7,7 +7,8 @@ import { Client } from '@stomp/stompjs';
 import axios from 'axios';
 
 const Game = () => {
-    const stompClientRef = useRef(null);
+    const displayRef = useRef(null); // reference of wordboard
+    const stompClientRef = useRef(null); // reference of stomp client that connect to websocket
     const [gameId, setGameId] = useState("");
     const [maxRound, setMaxRound] = useState(6);
     const [playerId, setPlayerId] = useState(0);
@@ -19,7 +20,7 @@ const Game = () => {
     const location = useLocation();
     console.log(location);
 
-
+    // default value for the game
     var playerName = "user";
     var gameMode = "normal";
     var t_gameId = "";
@@ -29,8 +30,7 @@ const Game = () => {
         t_gameId = location.state.gameId;
     } 
 
-    const displayRef = useRef(null);
-
+    // connect to the server when webpage render
     useEffect(() => {
 
         if(gameMode === "multiplayer") {
@@ -41,6 +41,7 @@ const Game = () => {
 
     }, []);
 
+    // refresh the wordboard after opponent has input a word
     function refreshWordBoard(word: String, result: String) {
         const wordBoard = displayRef.current;
         console.log("word: " + word + " result" + result);
@@ -49,6 +50,7 @@ const Game = () => {
         wordBoard.setInputValue("enter_" + result);
     }
 
+    // connect to websocket of game server
     function connectToSocket(gameId: string, playerId: number, maxRound: number) {
         console.log("connecting to the game");
         const socket = new SockJS(url + '/ws');
@@ -60,6 +62,8 @@ const Game = () => {
             },
             onConnect: () => {
                 console.log('Connected to WebSocket');
+
+                // subscribe to a specific channel of websocket and handle all message sent by the server
                 stompClient.subscribe('/topic/game-progress/' + gameId, (response) => {
                     console.log('Received message:', response.body);
                     
@@ -74,11 +78,13 @@ const Game = () => {
 
                         console.log("max round: " + maxRound);
                         console.log("current row:" + displayRef.current.row);
+
                         // check if this is your turn
                         if(data.playerTurn === playerId) {
                             console.log(typeof JSON.parse(response.body));
                             console.log("playTurn: " + data.playTurn);
                             console.log("your playerId: " + playerId);
+
                             if(data.result === "BBBBB") {
                                 alert("Opponent Win!")
                             } else if(displayRef.current.row === maxRound - 1) {
@@ -91,6 +97,7 @@ const Game = () => {
                             console.log(typeof JSON.parse(response.body));
                             console.log("playTurn: " + data.playTurn);
                             console.log("your playerId: " + playerId);
+
                             if(data.result !== "BBBBB" && displayRef.current.row < maxRound - 1) {
                                 alert("Opponnet turn");
                                 setGamePause(true);
@@ -107,9 +114,10 @@ const Game = () => {
         });
 
         stompClient.activate();
-        stompClientRef.current = stompClient;
+        stompClientRef.current = stompClient; // link the stompClient to stompclient reference
     }
 
+    // create and start the game of single-player mode
     function createGame() {
         axios.post(url + '/create', {
             'playerName': playerName,
@@ -129,6 +137,7 @@ const Game = () => {
 
     }
 
+    // handle game room connection in multiplayer mode 
     function connectToGame() {
         axios.post(url + '/connect', {
             'playerName': playerName,
@@ -140,6 +149,7 @@ const Game = () => {
             setPlayerId(response.data.playerId);
             // set number of round
             setMaxRound(response.data.maxRound);
+            // set up the wordboard layout
             displayRef.current.setLayout(response.data.maxRound);
 
             // set up websocket
@@ -150,7 +160,6 @@ const Game = () => {
             // For player 2, start the game;
             if(response.data.playerId === 1) {
                 setGamePause(true);
-                // alert("Please wait for another player");
             } else {
                 setGamePause(true);
                 alert("Game starts! Opponent Turn");
@@ -160,6 +169,7 @@ const Game = () => {
         })
     }
 
+    // send request to the server for word validation
     function validateWord(word: string, wordBoard) {
         console.log("Your id:" + playerId);
         var link = '/check';
@@ -193,6 +203,7 @@ const Game = () => {
         })
     }
 
+    // get the chosen word when the game is ended
     function getChosenWord(gameId: String) {
         axios.post( url + "/getChosenWord", {
             'playerName': playerName,
@@ -209,6 +220,7 @@ const Game = () => {
         })
     }
     
+    // handle the click event on keyboard component
     function handleClick(e) {
         if(!gamePause) {
             const {nodeName, textContent} = e.target;

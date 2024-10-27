@@ -14,13 +14,13 @@ import java.util.Map;
 
 @CrossOrigin
 @RestController
-public class GameController {
+public class GameController { // define a controller for wordle game that handles requests from clients
     private static final Logger log = LoggerFactory.getLogger(GameController.class);
     private final GameService gameService;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final SimpMessagingTemplate messagingTemplate; // stomp that send message to clients connected with websocket
 
     @Value("${MAX_ROUND}")
-    private int maxRound;
+    private int maxRound; // define the maximum round of guess
 
     public GameController(GameService gameService, SimpMessagingTemplate messagingTemplate) {
         this.gameService = gameService;
@@ -28,15 +28,13 @@ public class GameController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<Response> createGame(@RequestBody Map<String, String> payload) {
+    public ResponseEntity<Response> createGame(@RequestBody Map<String, String> payload) { // handle request of single-player game mode
         String playerName = payload.get("playerName");
         String mode = payload.get("gameMode");
         log.info("create game request: {} {} ", playerName, mode);
         GameModeEnum gameMode;
         if(mode.equals("normal")) {
             gameMode = GameModeEnum.NORMAL;
-        } else if(mode.equals("multiplayer")) {
-            gameMode = GameModeEnum.MULTIPLAYER;
         } else {
             gameMode = GameModeEnum.ABSURDLE;
         }
@@ -44,23 +42,24 @@ public class GameController {
     }
 
     @PostMapping("/connect")
-    public ResponseEntity<Response> connect(@RequestBody Map<String, String> payload) {
+    public ResponseEntity<Response> connect(@RequestBody Map<String, String> payload) { // handle request of multiplayer mode
         String playerName = payload.get("playerName");
         String gameId = payload.get("gameId");
         log.info("connect request: {} {}", playerName, gameId );
 
         Game game;
-        if(gameId.isEmpty()) {
+        if(gameId.isEmpty()) { // no gameId is input, connect to an available game room
             game = gameService.connectToRandomGame(new Player(playerName));
-        } else {
+        } else { // try to connect to specific game room
             game = gameService.connectToGame(new Player(playerName), gameId);
         }
 
         int playerId;
-        if(game.getPlayers().size() == 1) {
+        if(game.getPlayers().size() == 1) { // set this player as player1
             playerId = 1;
-        } else {
+        } else { // set this player as player2
             playerId = 2;
+            // send message to player1 for game start
             GuessResult guessResult = new GuessResult(game.getGameId(), "", "", 1);
             messagingTemplate.convertAndSend("/topic/game-progress/" + game.getGameId(), guessResult);
             log.info("guessResult: {}", guessResult);
@@ -70,7 +69,7 @@ public class GameController {
     }
 
     @PostMapping("/check")
-    public ResponseEntity<String> check(@RequestBody Map<String, String> payload) {
+    public ResponseEntity<String> check(@RequestBody Map<String, String> payload) { // check if the guess word match the chosen word
         String playerName = payload.get("playerName");
         String gameId = payload.get("gameId");
         String word = payload.get("word");
@@ -79,7 +78,7 @@ public class GameController {
     }
 
     @PostMapping("/getChosenWord")
-    public ResponseEntity<String> endGame(@RequestBody Map<String, String> payload) {
+    public ResponseEntity<String> endGame(@RequestBody Map<String, String> payload) { // get the chosen word when the game ends
         String playerName = payload.get("playerName");
         String gameId = payload.get("gameId");
         log.info("endGame: {} {}", playerName, gameId);
@@ -87,7 +86,7 @@ public class GameController {
     }
 
     @PostMapping("/ws")
-    public ResponseEntity<String> ws(@RequestBody Map<String, String> payload) {
+    public ResponseEntity<String> ws(@RequestBody Map<String, String> payload) { // handle word validation of multiplayer mode
         String playerName = payload.get("playerName");
         String gameId = payload.get("gameId");
         String word = payload.get("word");
@@ -95,6 +94,7 @@ public class GameController {
 
         log.info("ws request: {} {} {} {} ", playerName, gameId, word, playerId);
 
+        // send validation result to all players
         GuessResult guessResult = gameService.handleMultiplayerRequest(playerName, gameId, word, playerId);
         messagingTemplate.convertAndSend("/topic/game-progress/" + gameId, guessResult);
 

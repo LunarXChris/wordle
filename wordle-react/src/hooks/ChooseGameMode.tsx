@@ -1,6 +1,8 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 
+// provide a form for player to select game mode, provide player name and specified game room id
+// then navigate to the game webpage
 const chooseGameMode = () => {
 
     const navigate = useNavigate()

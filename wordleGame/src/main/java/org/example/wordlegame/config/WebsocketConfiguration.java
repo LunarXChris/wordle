@@ -8,9 +8,10 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 
 @Configuration
 @EnableWebSocketMessageBroker
-public class WebsocketConfiguration implements WebSocketMessageBrokerConfigurer {
+public class WebsocketConfiguration implements WebSocketMessageBrokerConfigurer { // standard configuration for web socket
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // allow cors for requests from nodejs-vite
         registry.addEndpoint("/ws").setAllowedOrigins("http://localhost:5173").withSockJS();
 
     }

@@ -14,7 +14,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Game{
+public class Game{ // define the class of wordle game
     @Id
     private String gameId;
     private List<String> wordCandidates;

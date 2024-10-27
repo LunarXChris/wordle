@@ -28,6 +28,7 @@ public class GameService {
         dict = loadWords(resourceFile);
     }
 
+    // load the dictionary from the word.txt file in resources file
     private List<String> loadWords(Resource resource) {
         try {
             InputStreamReader inputStreamReader = new InputStreamReader(resource.getInputStream());
@@ -58,12 +59,13 @@ public class GameService {
         return gameRepository.findById(id);
     }
 
+    // create a new game room according to game mode
     public Game createGame(Player player, GameModeEnum gameMode) {
         List<Player> players = new ArrayList<>();
         players.add(player);
 
         List<String> words = new ArrayList<>();
-        if(gameMode == GameModeEnum.ABSURDLE) {
+        if(gameMode == GameModeEnum.ABSURDLE || gameMode == GameModeEnum.MULTIPLAYER) { // add extra words to the word candidate list
             for(int i = 0; i < 5; i++) {
                 words.add(dict.get((int) Math.floor(Math.random() * dict.size())));
             }
@@ -71,9 +73,9 @@ public class GameService {
         words.add(dict.get((int) Math.floor(Math.random() * dict.size())));
 
         Game newGame;
-        if(gameMode == GameModeEnum.MULTIPLAYER) {
+        if(gameMode == GameModeEnum.MULTIPLAYER) { // set the game status to be new and wait for another player
             newGame = gameRepository.insert(new Game(UUID.randomUUID().toString(), words, players, gameMode, GameStatusEnum.NEW));
-        } else {
+        } else { // set the game status to be in-progress and start the game
             newGame = gameRepository.insert(new Game(UUID.randomUUID().toString(), words, players, gameMode, GameStatusEnum.IN_PROGRESS));
         }
 
@@ -82,6 +84,7 @@ public class GameService {
         return newGame;
     }
 
+    // connect to an available game room
     public Game connectToRandomGame(Player player) {
         List<Game> result = gameRepository.findByGameStatus(GameStatusEnum.NEW);
 
@@ -94,9 +97,9 @@ public class GameService {
             }
         }
 
-        if(game == null) {
+        if(game == null) { // if there is no available room, create new game room
             game = createGame(player, GameModeEnum.MULTIPLAYER);
-        } else {
+        } else { // connect to an available room
             game.getPlayers().add(player);
             game.setGameStatus(GameStatusEnum.IN_PROGRESS);
             game.getWordCandidates().add(dict.get((int) Math.floor(Math.random() * dict.size())));
@@ -106,19 +109,21 @@ public class GameService {
 
         return game;
     }
+
+    // connect to a specific game room
     public Game connectToGame(Player player, String gameId) {
         Optional<Game> result = getGame(gameId);
-        if(result.isEmpty()) {
+        if(result.isEmpty()) { // if the room is not found
             log.warn("Game does found {}", result);
             return connectToRandomGame(player);
         }
 
         Game game = result.get();
-        if(game.getGameStatus() != GameStatusEnum.NEW) {
+        if(game.getGameStatus() != GameStatusEnum.NEW) { // if the room is already start, connect to a random room
             return connectToRandomGame(player);
         }
 
-        if(game.getPlayers().size() > 1) {
+        if(game.getPlayers().size() > 1) { // handle an exception that the room found is full
             throw new RuntimeException("Game room is full!");
         }
         game.getPlayers().add(player);
@@ -131,7 +136,8 @@ public class GameService {
         return game;
     }
 
-
+    // match the input word with the chosen word
+    // G: Grey(incorrect character)  Y: Yellow(presented character)  B: Blue(correct character)
     private String validateWord(String word, String chosenWord) {
         String result = "";
         for(int i = 0; i < 5; i++) {
@@ -155,6 +161,7 @@ public class GameService {
         return result;
     }
 
+    // handle word guess of single-player mode
     public String handlePlayerGuess(String playerName, String gameId, String word) {
         Optional<Game> result = getGame(gameId);
         result.orElseThrow(() -> new RuntimeException("Game not found"));
@@ -164,7 +171,7 @@ public class GameService {
         List<String> words = game.getWordCandidates();
 
         String answer = "GGGGG";
-        if(game.getGameMode() == GameModeEnum.ABSURDLE) {
+        if(game.getGameMode() == GameModeEnum.ABSURDLE) { // implement the logic of host cheating mode
             int minHit = 5;
             int minPresent = 5;
             String remainWord = words.get(0);
@@ -205,7 +212,7 @@ public class GameService {
 
             game.setWordCandidates(update);
             gameRepository.save(game);
-        } else {
+        } else { // implement the logic of normal game mode
             for(int i = 0; i < players.size(); i++) {
                 if(players.get(i).playerName().equals(playerName)) {
                     answer = validateWord(word, words.get(i));
@@ -213,7 +220,7 @@ public class GameService {
             }
         }
 
-        if(answer.equals("BBBBB")) {
+        if(answer.equals("BBBBB")) { // if the guess is correct
             game.setGameStatus(GameStatusEnum.FINISHED);
             gameRepository.save(game);
         }
@@ -221,10 +228,12 @@ public class GameService {
         return answer;
     }
 
+    // get the chosen word for the specified game
     public String getChosenWord(String playerName, String gameId) {
         Optional<Game> result = getGame(gameId);
         result.orElseThrow(() -> new RuntimeException("Game not found"));
 
+        // set the game status be finished
         Game game = result.get();
         game.setGameStatus(GameStatusEnum.FINISHED);
         gameRepository.save(game);
@@ -240,6 +249,7 @@ public class GameService {
         return answer;
     }
 
+    // handle the request of multi-player mode
     public GuessResult handleMultiplayerRequest(String playerName, String gameId, String word, int playerId) {
         Optional<Game> result = getGame(gameId);
         result.orElseThrow(() -> new RuntimeException("Game not found"));
@@ -250,7 +260,7 @@ public class GameService {
 
         String answer = "GGGGG";
 
-        if(game.getGameMode() == GameModeEnum.MULTIPLAYER) {
+        if(game.getGameMode() == GameModeEnum.MULTIPLAYER) { // implements the logic that is same as the host-cheating mode
 
             int minHit = 5;
             int minPresent = 5;
@@ -294,7 +304,6 @@ public class GameService {
             gameRepository.save(game);
         }
 
-        // to write: nextTurn logic
         // iterate the List to prevent players have the same playerName
         int currentPlayerTurn = 0;
         for(int i = 0; i < players.size(); i++) {

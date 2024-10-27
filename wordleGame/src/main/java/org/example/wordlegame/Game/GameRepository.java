@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface GameRepository extends MongoRepository<Game, String> {
+public interface GameRepository extends MongoRepository<Game, String> { // define a dao using mongodb api
+    // define custom function find all games of specific game status
     List<Game> findByGameStatus(GameStatusEnum gameStatus);
 }
