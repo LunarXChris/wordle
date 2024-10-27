@@ -100,7 +100,7 @@ spring.data.mongodb.uri=mongodb+srv://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_CL
 
 ## How to play
 
-![]([https://github.com/LunarXChris/wordle/blob/main/gameDisplay.png))
+![]([https://github.com/LunarXChris/wordle/blob/main/gameDisplay.png)
 
 ####  Set up
 
